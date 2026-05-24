@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL ───────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-instavest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-instavest}
+      POSTGRES_DB: ${POSTGRES_DB:-instavest}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U instavest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── FastAPI Backend ──────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql://instavest:instavest@db:5432/instavest
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FMP_API_KEY: ${FMP_API_KEY:-}
+      APP_ENV: ${APP_ENV:-development}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Next.js Frontend ────────────────────────────
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

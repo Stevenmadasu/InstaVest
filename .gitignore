@@ -1,0 +1,11 @@
+# InstaVest
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+pgdata/

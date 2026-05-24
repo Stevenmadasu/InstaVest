@@ -13,6 +13,11 @@ from app.db.models import *  # noqa: F401,F403 — import all models for autogen
 
 config = context.config
 
+# Overwrite the ini-defined sqlalchemy.url with the environment's DATABASE_URL if available
+db_url = os.environ.get("DATABASE_URL")
+if db_url:
+    config.set_main_option("sqlalchemy.url", db_url)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
